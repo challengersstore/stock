@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Out</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            margin: auto;
+            text-align: center;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input, select {
+            width: 95%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .remove-entry {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .remove-entry:hover {
+            background: #c82333;
+        }
+
+        #receipt {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        #receiptTable {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #receiptTable th, #receiptTable td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        #receiptTable th {
+            background-color: #f2f2f2;
+        }
+
+        /* Print Styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #receipt, #receipt * {
+                visibility: visible;
+            }
+            #receipt {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                box-shadow: none;
+                border: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Stock Out</h2>
+
+        <form method="POST">
+            <label for="customer_name">Customer Name:</label>
+            <input type="text" name="customer_name" id="customer_name" required placeholder="Enter customer name">
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="stockEntries">
+                    <tr class="stock-entry">
+                        <td>
+                            <select name="stock_name[]" required>
+                                {% for name, qty in stock_names.items() %}
+                                    <option value="{{ name }}">{{ name }} (Available: {{ qty }})</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="number" name="quantity[]" class="quantity" required></td>
+                        <td><input type="number" name="price[]" step="0.01" class="price" required placeholder="Enter price"></td>
+                        <td class="total-price">₹0.00</td>
+                        <td><button type="button" class="remove-entry">Remove</button></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <button type="button" class="btn" id="addEntry">+ Add More Items</button>
+            <h3>Total Amount: ₹<span id="totalAmount">0.00</span></h3>
+            <button type="submit" class="btn" id="stockOutSubmit">Remove Stock</button>
+        </form>
+
+        <button class="btn" id="printReceipt">Print Receipt</button>
+
+        <div id="receipt">
+            <h2>Challenger Store</h2>
+            <h4>We can do it ..! We have the power..!</h4>
+            <h3>Purchase Receipt</h3>
+            <p><strong>Customer:</strong> <span id="receiptCustomer"></span></p>
+            <table id="receiptTable">
+                <thead>
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="receiptContent"></tbody>
+            </table>
+            <h3>Total Amount: ₹<span id="receiptTotalAmount"></span></h3>
+            <p><strong>Date:</strong> <span id="receiptDate"></span></p>
+        </div>
+    </div>
+
+    <script>
+        function updateTotal() {
+            let total = 0;
+            $(".stock-entry").each(function() {
+                let quantity = $(this).find(".quantity").val();
+                let price = $(this).find(".price").val();
+                let totalPrice = (quantity * price).toFixed(2);
+                $(this).find(".total-price").text(`₹${totalPrice}`);
+                total += parseFloat(totalPrice);
+            });
+            $("#totalAmount").text(total.toFixed(2));
+        }
+
+        $(document).ready(function() {
+            $("#addEntry").click(function() {
+                $("#stockEntries").append(`<tr class="stock-entry">
+                    <td>
+                        <select name="stock_name[]" required>
+                            {% for name, qty in stock_names.items() %}
+                                <option value="{{ name }}">{{ name }} (Available: {{ qty }})</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input type="number" name="quantity[]" class="quantity" required></td>
+                    <td><input type="number" name="price[]" step="0.01" class="price" required placeholder="Enter price"></td>
+                    <td class="total-price">₹0.00</td>
+                    <td><button type="button" class="remove-entry">Remove</button></td>
+                </tr>`);
+            });
+
+            $(document).on("click", ".remove-entry", function() {
+                $(this).closest(".stock-entry").remove();
+                updateTotal();
+            });
+
+            $(document).on("input", ".quantity, .price", function() {
+                updateTotal();
+            });
+
+            $("#printReceipt").click(function() {
+                let content = "";
+                $(".stock-entry").each(function() {
+                    let name = $(this).find("select").val();
+                    let quantity = $(this).find(".quantity").val();
+                    let price = $(this).find(".price").val();
+                    let total = (quantity * price).toFixed(2);
+                    content += `<tr><td>${name}</td><td>${quantity}</td><td>₹${price}</td><td>₹${total}</td></tr>`;
+                });
+
+                $("#receiptCustomer").text($("#customer_name").val());
+                $("#receiptContent").html(content);
+                $("#receiptTotalAmount").text($("#totalAmount").text());
+                $("#receiptDate").text(new Date().toLocaleString());
+                $("#receipt").show();
+                window.print();
+            });
+        });
+    </script>
+</body>
+</html>
