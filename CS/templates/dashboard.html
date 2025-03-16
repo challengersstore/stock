@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Stock Management</title>
+    <title>Dashboard | Challenger group of company</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -46,7 +46,7 @@
 <body>
 
     <div class="dashboard-container">
-        <h2>Stock Management Dashboard</h2>
+        <h2> Challenger group of company Dashboard</h2>
         <p>Welcome! Choose an option below:</p>
         <button onclick="location.href='/add_stock'">Add Stock</button>
         <button onclick="location.href='/stock_out'">Stock Out</button>
@@ -77,21 +77,22 @@
             transition: 0.3s;
         }
     </style>
-    
     <table>
         <tr>
+            <th>S.No</th>
             <th>Item Name</th>
             <th>Stock</th>
             <th>Price per Unit</th>
         </tr>
         {% for row in stock_data[1:] %}
         <tr>
+            <td>{{ loop.index }}</td>
             <td>{{ row[0] }}</td>
             <td>{{ row[2] }}</td>
             <td>₹{{ row[3] }}</td>
         </tr>
         {% endfor %}
     </table>
-     
+    
 </body>
 </html>
