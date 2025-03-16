@@ -25,6 +25,21 @@
 
         h2 {
             color: #333;
+            text-align: center;
+            margin: 10px 0;
+        }
+        h4 {
+            margin: 5px 0;
+        }
+        .top-left {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+        }
+        .top-right {
+            position: absolute;
+            top: 10px;
+            right: 40px;
         }
 
         label {
@@ -121,9 +136,15 @@
                 position: absolute;
                 top: 0;
                 left: 0;
+                margin-right:100px;
                 width: 100%;
                 box-shadow: none;
-                border: none;
+                border: 2px solid #000;
+            }
+            p {
+                text-align: left; /* Align text to the left */
+                margin-left: 10px; /* Add some margin from the left corner */
+                margin-top: 5px;  /* Optional: Adjust the spacing between paragraphs */
             }
         }
     </style>
@@ -135,10 +156,10 @@
         <form method="POST">
             <label for="customer_name">Customer Name:</label>
             <input type="text" name="customer_name" id="customer_name" required placeholder="Enter customer name">
-
             <table>
                 <thead>
                     <tr>
+                        <th>S.No</th>
                         <th>Product Name</th>
                         <th>Quantity</th>
                         <th>Price</th>
@@ -148,6 +169,7 @@
                 </thead>
                 <tbody id="stockEntries">
                     <tr class="stock-entry">
+                        <td class="serial-number">1</td>
                         <td>
                             <select name="stock_name[]" required>
                                 {% for name, qty in stock_names.items() %}
@@ -158,10 +180,26 @@
                         <td><input type="number" name="quantity[]" class="quantity" required></td>
                         <td><input type="number" name="price[]" step="0.01" class="price" required placeholder="Enter price"></td>
                         <td class="total-price">₹0.00</td>
-                        <td><button type="button" class="remove-entry">Remove</button></td>
+                        <td><button type="button" class="remove-entry" onclick="removeEntry(this)">Remove</button></td>
                     </tr>
                 </tbody>
             </table>
+            
+            <script>
+                function updateSerialNumbers() {
+                    let rows = document.querySelectorAll("#stockEntries .stock-entry");
+                    rows.forEach((row, index) => {
+                        row.querySelector(".serial-number").textContent = index + 1;
+                    });
+                }
+            
+                function removeEntry(button) {
+                    let row = button.closest(".stock-entry");
+                    row.remove();
+                    setTimeout(updateSerialNumbers, 100); // Ensure serial numbers update after removing
+                }
+            </script>
+            
 
             <button type="button" class="btn" id="addEntry">+ Add More Items</button>
             <h3>Total Amount: ₹<span id="totalAmount">0.00</span></h3>
@@ -170,14 +208,17 @@
 
         <button class="btn" id="printReceipt">Print Receipt</button>
 
-        <div id="receipt">
-            <h2>Challenger Store</h2>
-            <h4>We can do it ..! We have the power..!</h4>
+        <div id="receipt" style="border: 1px solid #000000; padding: 20px;">
+            <div class="top-left">We have the power..!👍</div>
+            <div class="top-right">We can do it ..!👍</div>
+            <h2>Challenger Group of Company</h2>
             <h3>Purchase Receipt</h3>
-            <p><strong>Customer:</strong> <span id="receiptCustomer"></span></p>
+            <p><strong>Customer Name:</strong> <span id="receiptCustomer"></span></p>
+            <p><strong>Date And Time:</strong> <span id="receiptDate"></span></p>
             <table id="receiptTable">
                 <thead>
                     <tr>
+                        <th>S.No</th>
                         <th>Product Name</th>
                         <th>Quantity</th>
                         <th>Price</th>
@@ -187,26 +228,33 @@
                 <tbody id="receiptContent"></tbody>
             </table>
             <h3>Total Amount: ₹<span id="receiptTotalAmount"></span></h3>
-            <p><strong>Date:</strong> <span id="receiptDate"></span></p>
+            
         </div>
     </div>
 
     <script>
-        function updateTotal() {
-            let total = 0;
-            $(".stock-entry").each(function() {
-                let quantity = $(this).find(".quantity").val();
-                let price = $(this).find(".price").val();
-                let totalPrice = (quantity * price).toFixed(2);
-                $(this).find(".total-price").text(`₹${totalPrice}`);
-                total += parseFloat(totalPrice);
-            });
-            $("#totalAmount").text(total.toFixed(2));
-        }
-
         $(document).ready(function() {
+            function updateSerialNumbers() {
+                $("#stockEntries .stock-entry").each(function(index) {
+                    $(this).find(".serial-number").text(index + 1);
+                });
+            }
+    
+            function updateTotal() {
+                let total = 0;
+                $(".stock-entry").each(function() {
+                    let quantity = parseFloat($(this).find(".quantity").val()) || 0;
+                    let price = parseFloat($(this).find(".price").val()) || 0;
+                    let totalPrice = quantity * price;
+                    $(this).find(".total-price").text("₹" + totalPrice.toFixed(2));
+                    total += totalPrice;
+                });
+                $("#totalAmount").text(total.toFixed(2));
+            }
+    
             $("#addEntry").click(function() {
                 $("#stockEntries").append(`<tr class="stock-entry">
+                    <td class="serial-number"></td>
                     <td>
                         <select name="stock_name[]" required>
                             {% for name, qty in stock_names.items() %}
@@ -219,27 +267,30 @@
                     <td class="total-price">₹0.00</td>
                     <td><button type="button" class="remove-entry">Remove</button></td>
                 </tr>`);
+                updateSerialNumbers();
             });
-
+    
             $(document).on("click", ".remove-entry", function() {
                 $(this).closest(".stock-entry").remove();
+                updateSerialNumbers();
                 updateTotal();
             });
-
+    
             $(document).on("input", ".quantity, .price", function() {
                 updateTotal();
             });
-
             $("#printReceipt").click(function() {
                 let content = "";
+                let serialNumber = 1; // Initialize serial number
                 $(".stock-entry").each(function() {
                     let name = $(this).find("select").val();
                     let quantity = $(this).find(".quantity").val();
                     let price = $(this).find(".price").val();
                     let total = (quantity * price).toFixed(2);
-                    content += `<tr><td>${name}</td><td>${quantity}</td><td>₹${price}</td><td>₹${total}</td></tr>`;
+                    content += `<tr><td>${serialNumber}</td><td>${name}</td><td>${quantity}</td><td>₹${price}</td><td>₹${total}</td></tr>`;
+                    serialNumber++; // Increment serial number
                 });
-
+            
                 $("#receiptCustomer").text($("#customer_name").val());
                 $("#receiptContent").html(content);
                 $("#receiptTotalAmount").text($("#totalAmount").text());
@@ -247,7 +298,9 @@
                 $("#receipt").show();
                 window.print();
             });
-        });
+        });            
     </script>
+    
 </body>
 </html>
+    
